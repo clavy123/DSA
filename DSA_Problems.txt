@@ -1,0 +1,89 @@
+
+//problem 1 Find the largest Number
+//bruteforce method
+public class Main
+{
+	public static void main(String[] args) {
+		int arr[] = new int[]{1,2,7,9,0};
+		int maxResult = Integer.MIN_VALUE;
+		for(int i=0;i<arr.length;i++){
+		    if(arr[i] > maxResult){
+		        maxResult = arr[i];
+		    }
+		}
+		System.out.println(maxResult);
+	}
+}
+
+
+//problem 1 Find the largest Number
+//binary search method
+public class Main
+{
+	public static void main(String[] args) {
+		int arr[] = new int[]{
+    2, 5, 8, 11, 14, 17, 21, 24, 27, 31,
+    34, 36, 39, 42, 45, 47, 51, 54, 57, 61,
+    64, 67, 70, 73, 76, 79, 82, 85, 88, 91,
+    94, 97, 101, 104, 108, 111, 115, 119, 123, 127,
+    131, 136, 141, 146, 151, 157, 163, 170, 178, 189
+};
+		int left = 0;
+		int right = arr.length -1;
+		int target = 189;
+		
+		while(left <= right){
+		    int mid = (left + right)/2;
+		    if(arr[mid] == target){
+		        System.out.println(arr[mid]);
+		        break;
+		    }
+		    else if(arr[mid] < target){
+		        left = mid + 1;
+		    }
+		    else{
+		        right = mid - 1;
+		    }
+		}
+	}
+}
+
+
+//problem 2 Two Sum
+//brute force method
+public class Main
+{
+	public static void main(String[] args) {
+	  int arr[] = new int[]{2,7,11,15};
+	  int target = 9;
+	  for(int i=0;i<arr.length;i++){
+	      for(int j = i+1;j<arr.length;j++){
+	          if(arr[i] + arr[j] == target){
+	              System.out.println(i + " " + j);
+	          }
+	      }
+	  }
+	}
+}
+import java.util.HashMap;
+//problem 2 Two Sum
+//HashMap method
+public class Main
+{
+	public static void main(String[] args) {
+	  int arr[] = new int[]{2,7,11,15};
+	  int target = 9;
+	  int arrLength = arr.length;
+	  HashMap<Integer, Integer> map = new HashMap<>();
+	  for(int i=0;i<arrLength;i++){
+	      map.put(arr[i],i);
+	  }
+
+	  for(int i=0;i<arrLength;i++){
+	      if(map.containsKey(target - arr[i])){
+	          System.out.println("Sum Found");
+	      }
+	  }
+	}
+}
+

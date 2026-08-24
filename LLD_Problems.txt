@@ -1,0 +1,81 @@
+namespace DailyTasks
+{
+    public class EmployeeService
+    {
+        private readonly IEmployeeRepository _repository;
+        private readonly IEmailService _emailService;
+
+        public EmployeeService(
+            IEmployeeRepository repository,
+            IEmailService emailService)
+        {
+            _repository = repository;
+            _emailService = emailService;
+        }
+
+        public void AddEmployee(string name, string email)
+        {
+            _repository.SaveEmployee(name, email);
+
+            _emailService.SendEmail(email);
+        }
+    }
+
+    public interface IEmployeeRepository
+    {
+        void SaveEmployee(string name, string email);
+    }
+
+    public interface IEmailService
+    {
+        void SendEmail(string email);
+    }
+
+    public class EmployeeRepository : IEmployeeRepository
+    {
+        public void SaveEmployee(string name, string email)
+        {
+            Console.WriteLine("Employee saved to database");
+        }
+    }
+
+    public class EmailService : IEmailService
+    {
+        public void SendEmail(string email)
+        {
+            Console.WriteLine("Email notification sent");
+        }
+    }
+}
+
+namespace DailyTasks
+{
+    public class NotificationService
+    {
+        public void SendNotification(INotificationService notificationService, string message)
+        {
+            notificationService.Send(message);
+        }
+    }
+
+    public interface INotificationService
+    {
+        void Send(string message);
+    }
+
+    public class EmailNotificationService : INotificationService
+    {
+        public void Send(string message)
+        {
+            Console.WriteLine("Sending Email: " + message);
+        }
+    }
+
+    public class SmsNotificationService : INotificationService
+    {
+        public void Send(string message)
+        {
+            Console.WriteLine("Sending SMS: " + message);
+        }
+    }
+}
