@@ -79,3 +79,51 @@ namespace DailyTasks
         }
     }
 }
+
+/******************************************************************************
+
+                            Online Java Compiler.
+                Code, Compile, Run and Debug java program online.
+Write your code in this editor and press "Run" button to execute it.
+
+*******************************************************************************/
+
+
+
+public class Main
+{
+	public static void main(String[] args) {
+		System.out.println("Hello World");
+		SingletonExample singletonExample  = SingletonExample.getInstance();
+				SingletonExample singletonExample1  = SingletonExample.getInstance();
+
+	}
+}
+
+class SingletonExample{
+    private static SingletonExample singletonExample = null;
+    private SingletonExample(){
+        
+    }
+    
+    public static SingletonExample getInstance(){
+        if(singletonExample == null){
+            singletonExample = new SingletonExample();
+            System.out.println("Object Created");
+            return singletonExample;
+        }
+        System.out.println("Already Got Object");
+        return singletonExample;
+    }
+}
+
+Dependency lifetimes in application containers are 
+categorized into Transient, Scoped, and Singleton models. 
+Database contexts such as DbContext require a Scoped 
+lifetime to maintain transaction integrity without
+thread-safety risks or memory overhead, 
+while mixing lifetimes improperly creates 
+Captive Dependency errors that lead to memory leaks and 
+application crashes.
+
+

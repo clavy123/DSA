@@ -87,3 +87,35 @@ public class Main
 	}
 }
 
+
+class Solution {
+    public int maxSubArray(int[] nums) {
+        int n = nums.length;
+        //currentSum is for current element tracking for max
+        int currentSum = nums[0];
+        //max sum is telling overall highest element or max element
+        int maxSum = currentSum;
+        for(int i=1;i<n;i++){
+            currentSum = Math.max(nums[i],nums[i]+currentSum);
+            maxSum = Math.max(currentSum,maxSum);
+        }
+        return maxSum;
+    }
+}
+
+class Solution {
+    public int removeDuplicates(int[] nums) {
+        int left = 0;
+        int right = 0 ;
+        while(right < nums.length){
+            if(nums[left] != nums[right]){
+                left++;
+                nums[left] = nums[right];
+            }
+            right++;
+        }
+        return left + 1;
+    }
+}
+
+//intuititon behind this only move left when we find unique until dont move L and when you got that then move Replace unique element which is R TO L so next time we get new Value

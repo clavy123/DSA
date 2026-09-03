@@ -1,0 +1,2 @@
+Give me new_value for every item in collection.
+[number * number for number in numbers]

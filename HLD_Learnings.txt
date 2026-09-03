@@ -1,0 +1,635 @@
+# Horizontal Scaling, Load Balancer & Stateless APIs
+
+## 1. Vertical Scaling vs Horizontal Scaling
+
+### Vertical Scaling = Scale UP
+
+Make the **same server more powerful**.
+
+```text
+Before:
+Server
+- 4 CPU
+- 8 GB RAM
+
+        ↓ Upgrade
+
+After:
+Server
+- 16 CPU
+- 64 GB RAM
+```
+
+**Memory trick:**
+
+> Vertical = Make one machine BIGGER.
+
+### Horizontal Scaling = Scale OUT
+
+Add **more servers/instances**.
+
+```text
+Before:
+
+Client → API-1
+
+
+After:
+
+             ┌── API-1
+Client → LB ─┼── API-2
+             └── API-3
+```
+
+**Memory trick:**
+
+> Horizontal = Make the number of machines BIGGER.
+
+---
+
+# 2. Why Do We Need Horizontal Scaling?
+
+Suppose one API server handles 1,000 requests.
+
+Traffic increases:
+
+```text
+10,000 requests
+        ↓
+One server struggles
+```
+
+Instead of continuously making one server bigger:
+
+```text
+API-1
+ ↓
+Bigger and bigger
+```
+
+We can add more instances:
+
+```text
+              ┌── API-1
+              ├── API-2
+Client → LB ──┼── API-3
+              ├── API-4
+              └── API-5
+```
+
+Now the traffic is distributed between multiple servers.
+
+---
+
+# 3. What Is a Load Balancer?
+
+A **Load Balancer (LB)** sits in front of multiple servers and distributes incoming requests.
+
+```text
+                  Load Balancer
+                       ↓
+          ┌────────────┼────────────┐
+          ↓            ↓            ↓
+        API-1        API-2        API-3
+```
+
+For example:
+
+```text
+Request 1 → API-1
+Request 2 → API-2
+Request 3 → API-3
+Request 4 → API-1
+```
+
+The exact distribution depends on the load-balancing strategy.
+
+### Simple definition
+
+> Load Balancer = The traffic distributor in front of multiple application instances.
+
+---
+
+# 4. What Is a Stateless API?
+
+A **stateless API does not depend on data stored only inside its own memory/server instance to understand a request.**
+
+Bad design:
+
+```text
+API-1 memory:
+
+User A = Logged In
+User B = Logged In
+```
+
+Now User A's next request goes to API-2:
+
+```text
+User A
+  ↓
+Load Balancer
+  ↓
+API-2
+
+API-2:
+"Who is User A?"
+```
+
+API-2 does not know what API-1 stored in its memory.
+
+This creates problems when horizontally scaling.
+
+---
+
+# 5. Stateless Architecture
+
+Instead of storing important shared state inside API instances:
+
+```text
+API-1 ──┐
+API-2 ──┼──→ Shared Storage
+API-3 ──┘
+```
+
+Shared state can be stored in:
+
+* Database
+* Redis
+* Other shared storage/services
+
+Now every API instance can access the same information.
+
+```text
+                    Load Balancer
+                         ↓
+              ┌──────────┼──────────┐
+              ↓          ↓          ↓
+            API-1      API-2      API-3
+              │          │          │
+              └──────────┼──────────┘
+                         ↓
+                  ┌──────────────┐
+                  │ Shared State │
+                  ├──────────────┤
+                  │ Redis        │
+                  │ Database     │
+                  └──────────────┘
+```
+
+---
+
+# 6. Authentication vs Authorization
+
+### Authentication
+
+> "Who are you?"
+
+Example:
+
+```text
+User → Login
+     → Username/Password
+     → Auth Service
+     → JWT Token
+```
+
+### Authorization
+
+> "What are you allowed to do?"
+
+Example:
+
+```text
+User has JWT
+Role = Admin
+
+Can access:
+Admin APIs ✅
+```
+
+---
+
+# 7. JWT and Stateless Authentication
+
+A common approach is JWT-based authentication.
+
+User logs in:
+
+```text
+Client
+  ↓
+Auth Service
+  ↓
+Validate credentials
+  ↓
+Generate JWT
+  ↓
+Client receives JWT
+```
+
+Then the client sends the JWT with subsequent requests:
+
+```text
+Authorization: Bearer <JWT>
+```
+
+Example:
+
+```text
+Client
+  ↓
+JWT
+  ↓
+Load Balancer
+  ↓
+API-1
+```
+
+API-1 validates the JWT.
+
+---
+
+# 8. What If the Next Request Goes to API-2?
+
+This is the important concept.
+
+Request 1:
+
+```text
+Client + JWT
+      ↓
+Load Balancer
+      ↓
+API-1
+      ↓
+Validate JWT ✅
+```
+
+Request 2:
+
+```text
+Client + SAME JWT
+      ↓
+Load Balancer
+      ↓
+API-2
+      ↓
+Validate JWT ✅
+```
+
+API-2 can validate the JWT itself.
+
+It does NOT necessarily need to call the Auth Service again for every request.
+
+So:
+
+```text
+API-1 → validates JWT
+API-2 → validates JWT
+API-3 → validates JWT
+```
+
+The JWT travels with the request.
+
+---
+
+# 9. Why Does This Work?
+
+A JWT contains claims and is cryptographically signed.
+
+The API can verify:
+
+* Is the token valid?
+* Was it modified?
+* Who is the user?
+* What claims/roles are present?
+* Is the token expired?
+
+Therefore:
+
+```text
+Same JWT
+    ↓
+API-1 → Can validate
+API-2 → Can validate
+API-3 → Can validate
+```
+
+The API does not need to remember:
+
+```text
+"User A logged in through API-1."
+```
+
+That's one of the important benefits of stateless authentication.
+
+---
+
+# 10. Where Does User Data Go?
+
+Important application data should not live only inside API-1's memory.
+
+Instead:
+
+```text
+                 ┌── API-1
+                 │
+Client → LB ─────┼── API-2
+                 │
+                 └── API-3
+                      │
+                      ↓
+              ┌──────────────┐
+              │   Database   │
+              └──────────────┘
+```
+
+For example:
+
+```text
+Database
+
+UserId = 123
+Name = Prince
+Role = Admin
+Email = ...
+```
+
+Any API instance can retrieve this information.
+
+---
+
+# 11. Where Does Redis Fit?
+
+Redis is commonly used for shared, fast-access data.
+
+For example:
+
+```text
+API-1 ──┐
+API-2 ──┼──→ Redis
+API-3 ──┘
+```
+
+Possible uses:
+
+* Caching
+* Session data
+* Rate limiting
+* Distributed locks
+* Temporary/shared data
+
+Important:
+
+> Stateless does NOT mean "there is no state anywhere."
+
+It means:
+
+> The individual API instance should not depend on state stored only inside itself.
+
+---
+
+# 12. Complete Request-Response Lifecycle
+
+A typical architecture can look like:
+
+```text
+                         ┌──────────────┐
+                         │ Auth Service │
+                         └──────┬───────┘
+                                │
+                                ↓
+Client ───────────────→ Load Balancer
+                            │
+                    ┌───────┼───────┐
+                    ↓       ↓       ↓
+                  API-1   API-2   API-3
+                    │       │       │
+                    └───────┼───────┘
+                            ↓
+                    ┌───────────────┐
+                    │ Redis/Database│
+                    └───────────────┘
+```
+
+### Login flow
+
+```text
+Client
+  ↓
+Load Balancer
+  ↓
+Auth Service
+  ↓
+Database
+  ↓
+JWT
+  ↓
+Client
+```
+
+### Normal API request
+
+```text
+Client
+  ↓
+JWT
+  ↓
+Load Balancer
+  ↓
+API-1 / API-2 / API-3
+  ↓
+Validate JWT
+  ↓
+Business Logic
+  ↓
+Redis / Database
+  ↓
+Response
+  ↓
+Client
+```
+
+---
+
+# 13. Important Correction
+
+Do NOT think:
+
+```text
+Client
+  ↓
+Auth Service
+  ↓
+Load Balancer
+  ↓
+API
+```
+
+for every request.
+
+Authentication is usually involved during login/token issuance, while subsequent API requests can carry the JWT.
+
+A better mental model is:
+
+```text
+LOGIN:
+
+Client → LB → Auth Service → DB
+                     ↓
+                    JWT
+                     ↓
+                   Client
+
+
+NORMAL REQUEST:
+
+Client + JWT
+     ↓
+Load Balancer
+     ↓
+API-1 / API-2 / API-3
+     ↓
+Validate JWT
+     ↓
+Business Logic
+     ↓
+DB / Redis
+     ↓
+Response
+```
+
+---
+
+# 14. Kubernetes Connection
+
+Kubernetes can run multiple replicas of your application.
+
+For example:
+
+```yaml
+replicas: 3
+```
+
+means you want 3 instances/replicas.
+
+Conceptually:
+
+```text
+Pod 1 → API
+Pod 2 → API
+Pod 3 → API
+```
+
+If the application needs more capacity, Kubernetes can scale the number of replicas.
+
+For example:
+
+```text
+3 replicas
+     ↓
+Traffic increases
+     ↓
+10 replicas
+```
+
+When traffic decreases, it can scale down again.
+
+This is called **autoscaling**.
+
+---
+
+# 15. The Whole Concept in One Picture
+
+```text
+                         CLIENT
+                            │
+                            │ JWT
+                            ↓
+                    ┌───────────────┐
+                    │ Load Balancer │
+                    └───────┬───────┘
+                            │
+                ┌───────────┼───────────┐
+                ↓           ↓           ↓
+             API-1       API-2       API-3
+                │           │           │
+                │           │           │
+                └───────────┼───────────┘
+                            ↓
+                     Redis / Database
+```
+
+The important idea:
+
+> **Any request can go to any API instance.**
+
+Because:
+
+1. The API is stateless.
+2. Authentication information can travel with the request through JWT.
+3. Shared application data is stored outside individual API instances.
+4. A Load Balancer distributes requests.
+5. More API instances can be added when traffic increases.
+
+---
+
+# 16. Interview Answer
+
+If the interviewer asks:
+
+### "How would you scale a .NET API?"
+
+Answer:
+
+> "I would keep the API stateless and horizontally scale multiple instances behind a load balancer. Authentication can use JWT so that any API instance can validate the token. Shared state or frequently accessed data can be stored in services such as Redis and the database. In a containerized environment, Kubernetes can manage multiple replicas and autoscale them based on workload."
+
+---
+
+# 17. Memory Trick
+
+Remember this chain:
+
+```text
+MORE USERS
+    ↓
+HORIZONTAL SCALING
+    ↓
+MORE API INSTANCES
+    ↓
+LOAD BALANCER
+    ↓
+STATELESS API
+    ↓
+JWT FOR AUTHENTICATION
+    ↓
+REDIS / DATABASE FOR SHARED STATE
+    ↓
+KUBERNETES MANAGES REPLICAS
+```
+
+### One-line memory rule
+
+> **Don't make one server remember everything. Make every server capable of handling the request, and keep shared data outside the server.**
+
+---
+
+# 18. Questions You Should Be Able to Answer
+
+Before moving forward, make sure you can explain these without looking at the note:
+
+1. What is vertical scaling?
+2. What is horizontal scaling?
+3. Why do we need a load balancer?
+4. What does stateless API mean?
+5. Why is state inside API memory a problem?
+6. What happens if Request 1 goes to API-1 and Request 2 goes to API-2?
+7. Why can API-2 validate the same JWT?
+8. What is the difference between authentication and authorization?
+9. Why do we use Redis?
+10. Where should persistent user data be stored?
+11. How does Kubernetes help with horizontal scaling?
+12. What is autoscaling?
+
+If you understand these **12 questions**, you've understood the core of this topic rather than just memorizing terminology.
